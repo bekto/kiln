@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% if site.title %}{{ site.title }}{% else %}Kiln site{% endif %}</title>
+{% block head %}{% endblock %}{% if page.injectHead %}{% for p in page.injectHead %}{% include p %}
+{% endfor %}{% endif %}
+</head>
+<body>
+{% block content %}{% endblock %}
+{% if page.injectBody %}{% for p in page.injectBody %}{% include p %}
+{% endfor %}{% endif %}
+</body>
+</html>

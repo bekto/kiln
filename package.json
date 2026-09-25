@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "gray-matter": "4.0.3",
-    "markdown-it": "15.0.2"
+    "markdown-it": "15.0.2",
+    "nunjucks": "3.2.4"
   }
 }

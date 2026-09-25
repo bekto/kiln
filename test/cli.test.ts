@@ -51,7 +51,9 @@ test("no arguments prints help listing help and version, exit 0", () => {
     stdout.indexOf("  help") < stdout.indexOf("  version"),
     "commands listed alphabetically",
   );
-  assert.doesNotMatch(stdout, /\b(?:build|serve|new|clean)\b/);
+  // T012 extended: help now lists build; Wave 4 will do the same for the rest.
+  assert.match(stdout, /^\s+build\s{2,}Build the site$/m);
+  assert.doesNotMatch(stdout, /\b(?:serve|new|clean)\b/);
 });
 
 test("kiln help prints the same help, exit 0", () => {
@@ -77,7 +79,8 @@ test("unknown command exits 2 and lists discovered commands on stderr", () => {
   assert.equal(code, 2);
   assert.equal(stdout, "");
   assert.match(stderr, /^kiln: unknown command 'bogus'$/m);
-  assert.match(stderr, /^commands: help, version$/m);
+  // T012 extended: build joins the discovered command list.
+  assert.match(stderr, /^commands: build, help, version$/m);
 });
 
 test("auto-discovery runs a dropped-in command file from any cwd", async () => {
@@ -176,7 +179,8 @@ test("only help and version command files exist; cli.ts never names them", async
   const entries = (await readdir(COMMANDS))
     .filter((f) => !f.startsWith("__"))
     .sort();
-  assert.deepEqual(entries, ["help.ts", "version.ts"]);
+  // T012 extended: build ships as a third command file.
+  assert.deepEqual(entries, ["build.ts", "help.ts", "version.ts"]);
   const cliSource = await readFile(CLI, "utf8");
   assert.doesNotMatch(cliSource, /commands\/(?:build|serve|new|clean)/);
   assert.doesNotMatch(cliSource, /from ["'][^"']*commands\//);
