@@ -17,5 +17,9 @@
   "devDependencies": {
     "@types/node": "^24",
     "typescript": "7.0.2"
+  },
+  "dependencies": {
+    "gray-matter": "4.0.3",
+    "markdown-it": "15.0.2"
   }
 }
