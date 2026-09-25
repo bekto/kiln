@@ -1,0 +1,21 @@
+{
+  "name": "kiln",
+  "version": "0.0.0",
+  "description": "A static site generator that bakes Markdown into fast websites",
+  "type": "module",
+  "bin": {
+    "kiln": "src/cli.ts"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "pretest": "npm run typecheck",
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "@types/node": "^24",
+    "typescript": "7.0.2"
+  }
+}
