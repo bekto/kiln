@@ -1,0 +1,15 @@
+{#- T023 — client-side search, opt-in: site authors place
+    {% include "search.html" %} anywhere search should appear. The root's
+    data-index carries the index URL that src/features/search.ts
+    publishes on site data in onSite (T012's siteContext spreads it
+    top-level as `site`); the default keeps a partial usable in builds
+    without the feature. -#}
+<div class="kiln-search" data-index="{{ site.searchIndexPath | default('/search-index.json') }}">
+  <label class="kiln-search-label">
+    Search
+    <input class="kiln-search-input" type="search" placeholder="Search…" autocomplete="off">
+  </label>
+  <ul class="kiln-search-results" hidden></ul>
+  <p class="kiln-search-empty" hidden>No results</p>
+</div>
+<script src="/assets/search.js" defer></script>
