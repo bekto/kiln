@@ -1,0 +1,18 @@
+{#- Pagination nav (T015) — prev/next links for the list page being
+    rendered, read from `page.pagination`. Every list document carries
+    `injectBody: ["pagination.html"]`, so base.html includes this partial
+    after the content block on any layout chain; it emits nothing when
+    `totalPages` is 1 (a single-page list is canonical and unchanged) or
+    when the page carries no pagination data. Hrefs are root-relative with
+    a trailing slash — page 2's prev is the canonical list URL, never
+    `/page/1/`. -#}
+{% if page.pagination and page.pagination.totalPages > 1 %}
+<nav class="pagination">
+{%- if page.pagination.prevUrl %}
+  <a rel="prev" href="{{ page.pagination.prevUrl }}">Previous</a>
+{%- endif %}
+{%- if page.pagination.nextUrl %}
+  <a rel="next" href="{{ page.pagination.nextUrl }}">Next</a>
+{%- endif %}
+</nav>
+{% endif -%}
