@@ -1,0 +1,48 @@
+# CI — typecheck, test, and example-site build on every push and PR.
+#
+# Action allowlist: only GitHub-maintained `actions/*` are permitted in this
+# repository. The complete set used here is `actions/checkout@v4`,
+# `actions/setup-node@v4`, and `actions/upload-artifact@v4` (the latter is
+# required by this ticket's artifact deliverable). No marketplace or
+# third-party actions (no coverage, lint, caching, or deployment actions),
+# no `services:`, no external containers.
+#
+# No dependency caching (`actions/cache` / setup-node's `cache:` input) —
+# `npm install` is the cache. No `permissions:` customization — the
+# workflow needs nothing beyond the defaults (read contents, write artifacts).
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      # Single entry on purpose: a future Node version is added by
+      # appending one list element.
+      matrix:
+        node-version: [24]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+      # `npm install`, deliberately not `npm ci`: a committed
+      # package-lock.json is not mandated, and `npm ci` hard-fails without one.
+      - run: npm install
+      - run: npm run typecheck
+      - run: npm test
+
+  build-site:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install
+      - run: cd site && node ../src/cli.ts build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: example-site
+          path: site/dist

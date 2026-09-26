@@ -1,11 +1,20 @@
 {
   "name": "kiln",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "A static site generator that bakes Markdown into fast websites",
   "type": "module",
   "bin": {
     "kiln": "src/cli.ts"
   },
+  "files": [
+    "src",
+    "templates",
+    "assets",
+    "docs",
+    "PLAN.md",
+    "README.md",
+    "CHANGELOG.md"
+  ],
   "engines": {
     "node": ">=24"
   },
