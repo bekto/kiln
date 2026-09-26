@@ -109,13 +109,13 @@ function tagsFor(value: unknown): string[] {
 }
 
 /** One published document → one index entry (key order matters). */
-function entryFor(page: Page): SearchEntry {
+function entryFor(page: Page, basePath: string): SearchEntry {
   const title = typeof page.data.title === "string" ? page.data.title : "";
   const excerpt =
     typeof page.data.excerpt === "string" ? page.data.excerpt : "";
   return {
     title: title.replace(HTML_TAG, " ").replace(/\s+/g, " ").trim(),
-    url: pageOutputFor(page).url,
+    url: `${basePath}${pageOutputFor(page).url}`,
     excerpt: excerpt.replace(HTML_TAG, " ").replace(/\s+/g, " ").trim(),
     tags: tagsFor(page.data.tags),
   };
@@ -123,7 +123,11 @@ function entryFor(page: Page): SearchEntry {
 
 async function onSite(site: Site, ctx: FeatureContext): Promise<void> {
   const { indexPath } = ctx.options(parseOptions);
-  const entries = site.pages.map(entryFor);
+  // Subpath hosting: index urls carry the prefix so the client script can
+  // link to them verbatim (an arrow, never map's index-as-second-arg).
+  const basePath =
+    typeof site.data.basePath === "string" ? site.data.basePath : "";
+  const entries = site.pages.map((page) => entryFor(page, basePath));
   site.data.searchIndexPath = `/${indexPath}`;
   const target = path.resolve("dist", indexPath);
   await mkdir(path.dirname(target), { recursive: true });

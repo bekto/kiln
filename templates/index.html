@@ -2,7 +2,7 @@
 {% block content %}
 <h1>{% if page.title %}{{ page.title }}{% elif site.title %}{{ site.title }}{% else %}Kiln site{% endif %}</h1>
 <ul>
-{% for p in site.pages %}  <li><a href="{{ p.url }}">{% if p.title %}{{ p.title }}{% else %}{{ p.url }}{% endif %}</a></li>
+{% for p in site.pages %}  <li><a href="{{ site.basePath }}{{ p.url }}">{% if p.title %}{{ p.title }}{% else %}{{ p.url }}{% endif %}</a></li>
 {% endfor %}
 </ul>
 {% endblock %}

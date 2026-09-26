@@ -169,11 +169,13 @@ test("onBuildEnd: assets/search.js copied byte-for-byte to dist/assets/search.js
 test("partial: data-index from site.searchIndexPath with default fallback, script hook present", async () => {
   const templates = await loadTemplates(path.join(REPO, "templates"));
   const custom = await templates.render("search.html", {
-    site: { searchIndexPath: "/data/search.json" },
+    site: { basePath: "", searchIndexPath: "/data/search.json" },
   });
   assert.match(custom, /data-index="\/data\/search\.json"/);
 
-  const fallback = await templates.render("search.html", { site: {} });
+  const fallback = await templates.render("search.html", {
+    site: { basePath: "" },
+  });
   assert.match(fallback, /data-index="\/search-index\.json"/);
 
   for (const markup of [custom, fallback]) {
@@ -184,6 +186,14 @@ test("partial: data-index from site.searchIndexPath with default fallback, scrip
     assert.match(markup, />No results</);
     assert.match(markup, /<script src="\/assets\/search\.js" defer><\/script>/);
   }
+
+  // Subpath hosting: both the index URL and the script src carry the base
+  // prefix (site.basePath, defaulted by renderDocument in real builds).
+  const prefixed = await templates.render("search.html", {
+    site: { basePath: "/sub", searchIndexPath: "/data/search.json" },
+  });
+  assert.match(prefixed, /data-index="\/sub\/data\/search\.json"/);
+  assert.match(prefixed, /<script src="\/sub\/assets\/search\.js" defer><\/script>/);
 });
 
 test("script source: node --check passes and carries no import/require", () => {

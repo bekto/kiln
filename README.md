@@ -136,7 +136,7 @@ against the project root (absolute values are kept).
 | `publicDir` | string | `public` | Static files copied verbatim into the output. |
 | `outDir` | string | `dist` | Build output directory; `kiln clean` removes exactly this. |
 | `site.title` | string | `Kiln site` | Site title, available to templates as `site.title`. |
-| `site.url` | string | `http://localhost:8080` | Absolute base URL for feed and sitemap links — must be an absolute `http(s)://` URL with a host or the feed build fails. |
+| `site.url` | string | `http://localhost:8080` | Absolute base URL for feed and sitemap links — must be an absolute `http(s)://` URL with a host or the feed build fails. Its **path** is also the base prefix for every internal link, markdown image, and search-index URL, so subpath hosting (e.g. a GitHub Pages project site at `/kiln/`) works with no extra config. |
 | `site.description` | string | *(unset)* | Optional site description, available to templates as `site.description`. |
 | `port` | number | `4173` | Dev-server port for `kiln serve`; the `--port` flag overrides it per run. |
 | `watch.debounceMs` | number | `100` | Watcher window (ms) within which save events coalesce into one rebuild. |

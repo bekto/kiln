@@ -129,6 +129,12 @@ async function onBuildEnd(
 ): Promise<void> {
   const { allow, exclude } = ctx.options(readOptions);
 
+  // Subpath hosting: pages link as `/kiln/…` while dist files are rooted at
+  // `/`, so resolution strips the prefix before mapping to files/anchors.
+  const basePath =
+    typeof result.site.data.basePath === "string"
+      ? result.site.data.basePath
+      : "";
   const files = await htmlFilesUnder(result.distDir);
   const anchors = new Map<string, Set<string>>();
   const broken = new Map<string, BrokenLink>();
@@ -141,7 +147,14 @@ async function onBuildEnd(
       if (matchesAny(exclude, raw) || matchesAny(exclude, source)) continue;
       const link = raw.trim();
       if (EXTERNAL.test(link)) continue;
-      const hit = await inspectLink(result.distDir, file, source, link, anchors);
+      const hit = await inspectLink(
+        result.distDir,
+        file,
+        source,
+        link,
+        anchors,
+        basePath,
+      );
       if (hit === undefined) continue;
       if (matchesAny(allow, hit.target)) continue;
       const key = `${source}\0${hit.target}`;
@@ -161,7 +174,10 @@ async function onBuildEnd(
 /**
  * Check one internal reference; `undefined` means fine (or not checkable).
  * `link` is the trimmed href — external forms never reach here; the raw
- * value stays with the caller for reporting.
+ * value stays with the caller for reporting. `basePath` is the hosting
+ * subpath carried by prefixed hrefs (`/kiln/…`); it is stripped from the
+ * resolved path so a subpath site maps onto the same dist tree a root site
+ * would (fragment-only references never carry it).
  */
 async function inspectLink(
   distDir: string,
@@ -169,6 +185,7 @@ async function inspectLink(
   source: string,
   link: string,
   anchors: Map<string, Set<string>>,
+  basePath: string,
 ): Promise<{ target: string } | undefined> {
   const hash = link.indexOf("#");
   const pathPart = hash === -1 ? link : link.slice(0, hash);
@@ -188,6 +205,12 @@ async function inspectLink(
     resolved = new URL(pathPart, `${ORIGIN}${source}`).pathname;
   } catch {
     return undefined; // unparseable reference — nothing sound to check
+  }
+  if (
+    basePath !== "" &&
+    (resolved === basePath || resolved.startsWith(`${basePath}/`))
+  ) {
+    resolved = resolved.slice(basePath.length) || "/";
   }
   const targetPath = decodePart(resolved);
   const segments = targetPath.split("/");

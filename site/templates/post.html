@@ -13,14 +13,14 @@
 {% if page.toc %}{% include "toc.html" %}{% endif %}
 {{ content | safe }}
 {% if page.tags %}
-<p class="tags">{% for t in page.tags %}<a class="tag" href="/tags/{{ t }}/">{{ t }}</a>{% endfor %}</p>
+<p class="tags">{% for t in page.tags %}<a class="tag" href="{{ site.basePath }}/tags/{{ t }}/">{{ t }}</a>{% endfor %}</p>
 {% endif %}
 {% if page.related %}
 <section class="related">
 <h2>Related posts</h2>
 <ul>
 {% for r in page.related %}
-<li><a href="{{ r.url }}">{{ r.title }}</a></li>
+<li><a href="{{ site.basePath }}{{ r.url }}">{{ r.title }}</a></li>
 {% endfor %}
 </ul>
 </section>

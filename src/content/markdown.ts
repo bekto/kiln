@@ -33,6 +33,14 @@ export interface RenderOptions {
    * targets are handled the same either way).
    */
   currentUrl?: string;
+  /**
+   * Hosting subpath (path component of `site.url`, e.g. `/kiln`); when set,
+   * root-absolute `link_open` hrefs and image `src` attributes gain the
+   * prefix at render time. Protocol-relative (`//host`), scheme'd, relative,
+   * and fragment targets are never prefixed, and code-block text is never
+   * touched (rewriting happens on tokens, not on the HTML string).
+   */
+  basePath?: string;
 }
 
 /**
@@ -51,7 +59,7 @@ export function createRenderer(options?: RenderOptions): MarkdownIt {
   md.renderer.rules.s_open = () => "<del>";
   md.renderer.rules.s_close = () => "</del>";
   for (const extension of options?.extensions ?? []) extension(md);
-  installLinkRewriting(md, options?.currentUrl);
+  installLinkRewriting(md, options?.currentUrl, options?.basePath ?? "");
   return md;
 }
 
@@ -93,12 +101,16 @@ export function renderMarkdown(
 /**
  * Rewrite `href` on every `link_open` token at render time (covers manual
  * links and `linkify` autolinks alike): a `.md`/`.markdown` path becomes the
- * pretty URL from `urlForPath`, preserving query and fragment. Wraps whatever
- * `link_open` rule exists so extension-installed rules keep working.
+ * pretty URL from {@link rewriteMarkdownHref}, then `basePath` prefixes
+ * root-absolute targets. Image `src` attributes gain the same prefix through
+ * a wrapped `image` rule. Wraps whatever rules exist so extension-installed
+ * rules keep working. Token-level only — code fences and inline code pass
+ * through the renderer untouched.
  */
 function installLinkRewriting(
   md: MarkdownIt,
   currentUrl: string | undefined,
+  basePath: string,
 ): void {
   const previous: RendererRule | undefined = md.renderer.rules.link_open;
   md.renderer.rules.link_open = (tokens, idx, options, env, renderer) => {
@@ -106,13 +118,39 @@ function installLinkRewriting(
     const href = token.attrGet("href");
     if (typeof href === "string") {
       const rewritten = rewriteMarkdownHref(href, currentUrl);
-      if (rewritten !== null) token.attrSet("href", rewritten);
+      token.attrSet("href", withBasePath(rewritten ?? href, basePath));
     }
     return (
       previous?.(tokens, idx, options, env, renderer) ??
       renderer.renderToken(tokens, idx, options)
     );
   };
+  const previousImage: RendererRule | undefined = md.renderer.rules.image;
+  md.renderer.rules.image = (tokens, idx, options, env, renderer) => {
+    const token = tokens[idx];
+    const src = token.attrGet("src");
+    if (typeof src === "string") {
+      token.attrSet("src", withBasePath(src, basePath));
+    }
+    return (
+      previousImage?.(tokens, idx, options, env, renderer) ??
+      renderer.renderToken(tokens, idx, options)
+    );
+  };
+}
+
+/**
+ * Prefix a root-absolute reference with the hosting subpath. Returns the
+ * value unchanged when there is no subpath, when the target is not
+ * root-absolute, when it is protocol-relative (`//host`), or when it already
+ * carries the prefix (idempotent under re-renders). The exclusions are the
+ * non-obvious part of this formula, which is why it lives under one name.
+ */
+function withBasePath(value: string, basePath: string): string {
+  if (basePath === "") return value;
+  if (!value.startsWith("/") || value.startsWith("//")) return value;
+  if (value.startsWith(`${basePath}/`)) return value;
+  return `${basePath}${value}`;
 }
 
 /**

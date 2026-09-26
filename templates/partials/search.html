@@ -4,7 +4,7 @@
     publishes on site data in onSite (T012's siteContext spreads it
     top-level as `site`); the default keeps a partial usable in builds
     without the feature. -#}
-<div class="kiln-search" data-index="{{ site.searchIndexPath | default('/search-index.json') }}">
+<div class="kiln-search" data-index="{{ site.basePath }}{{ site.searchIndexPath | default('/search-index.json') }}">
   <label class="kiln-search-label">
     Search
     <input class="kiln-search-input" type="search" placeholder="Search…" autocomplete="off">
@@ -12,4 +12,4 @@
   <ul class="kiln-search-results" hidden></ul>
   <p class="kiln-search-empty" hidden>No results</p>
 </div>
-<script src="/assets/search.js" defer></script>
+<script src="{{ site.basePath }}/assets/search.js" defer></script>

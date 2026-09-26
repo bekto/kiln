@@ -5,19 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% if page.title %}{{ page.title }} · {{ site.title }}{% else %}{{ site.title }}{% endif %}</title>
 <meta name="description" content="{{ site.description }}">
-<link rel="alternate" type="application/atom+xml" href="/feed.xml">
-<link rel="stylesheet" href="/styles.css">
-<link rel="stylesheet" href="/assets/hljs.css">
+<link rel="alternate" type="application/atom+xml" href="{{ site.basePath }}/feed.xml">
+<link rel="stylesheet" href="{{ site.basePath }}/styles.css">
+<link rel="stylesheet" href="{{ site.basePath }}/assets/hljs.css">
 </head>
 <body>
 <header class="site-header">
-<a class="site-title" href="/">{{ site.title }}</a>
+<a class="site-title" href="{{ site.basePath }}/">{{ site.title }}</a>
 <nav class="site-nav">
-<a href="/">Home</a>
-<a href="/about/">About</a>
-<a href="/projects/">Projects</a>
-<a href="/tags/">Tags</a>
-<a href="/feed.xml">Feed</a>
+<a href="{{ site.basePath }}/">Home</a>
+<a href="{{ site.basePath }}/about/">About</a>
+<a href="{{ site.basePath }}/projects/">Projects</a>
+<a href="{{ site.basePath }}/tags/">Tags</a>
+<a href="{{ site.basePath }}/feed.xml">Feed</a>
 </nav>
 {% include "search.html" %}
 </header>
@@ -25,7 +25,7 @@
 {% block content %}{% endblock %}
 </main>
 <footer class="site-footer">
-<p>{{ site.description }} · <a href="/feed.xml">Atom feed</a></p>
+<p>{{ site.description }} · <a href="{{ site.basePath }}/feed.xml">Atom feed</a></p>
 </footer>
 </body>
 </html>

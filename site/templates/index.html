@@ -11,14 +11,14 @@
 <div class="post-list">
 {% for p in page.posts %}
 <article class="post-card">
-<h2><a href="{{ p.url }}">{{ p.title }}</a></h2>
+<h2><a href="{{ site.basePath }}{{ p.url }}">{{ p.title }}</a></h2>
 <p class="meta">
 {%- if p.date %} <time datetime="{{ p.date | date }}">{{ p.date | date }}</time>{% endif %}
 {%- if p.readingTime %} <span class="reading-time">{{ p.readingTime }} min read</span>{% endif %}
 </p>
 {% if p.excerpt %}<p class="excerpt">{{ p.excerpt }}</p>{% endif %}
 {% if p.tags %}
-<p class="tags">{% for t in p.tags %}<a class="tag" href="/tags/{{ t }}/">{{ t }}</a>{% endfor %}</p>
+<p class="tags">{% for t in p.tags %}<a class="tag" href="{{ site.basePath }}/tags/{{ t }}/">{{ t }}</a>{% endfor %}</p>
 {% endif %}
 </article>
 {% endfor %}

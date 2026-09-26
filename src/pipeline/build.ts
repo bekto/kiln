@@ -148,8 +148,19 @@ async function runBuild(options?: BuildOptions): Promise<BuildReport> {
     onError: (error) => errors.push(error),
   });
   // Seed the site bag as a mutable copy of config.site ({title, url,
-  // description?}); features own it from here (rule 5).
-  site.data = { ...config.site };
+  // description?}); features own it from here (rule 5). `basePath` is the
+  // path component of site.url — "" for domain-root hosting, "/kiln" for a
+  // subpath such as a GitHub Pages project site — and prefixes every
+  // root-absolute template link, markdown link/image, and search-index URL.
+  let basePath = "";
+  try {
+    const pathname = new URL(config.site.url).pathname;
+    basePath = pathname === "/" ? "" : pathname.replace(/\/+$/, "");
+  } catch {
+    // A relative/invalid site.url is T018/T019's error to report; the seed
+    // never fails over it.
+  }
+  site.data = { ...config.site, basePath };
 
   // Feature discovery — an invalid module is a recorded load failure, not a
   // throw; a non-FeatureLoadError (unexpected fs trouble) still throws.

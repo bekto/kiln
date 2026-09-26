@@ -9,10 +9,10 @@
 {% if page.pagination and page.pagination.totalPages > 1 %}
 <nav class="pagination">
 {%- if page.pagination.prevUrl %}
-  <a rel="prev" href="{{ page.pagination.prevUrl }}">Previous</a>
+  <a rel="prev" href="{{ site.basePath }}{{ page.pagination.prevUrl }}">Previous</a>
 {%- endif %}
 {%- if page.pagination.nextUrl %}
-  <a rel="next" href="{{ page.pagination.nextUrl }}">Next</a>
+  <a rel="next" href="{{ site.basePath }}{{ page.pagination.nextUrl }}">Next</a>
 {%- endif %}
 </nav>
 {% endif -%}

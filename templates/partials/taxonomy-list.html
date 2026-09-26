@@ -11,7 +11,7 @@
 <h1>{% if page.title %}{{ page.title }}{% elif site.title %}{{ site.title }}{% else %}Kiln site{% endif %}</h1>
 <ul>
 {% for post in page.posts %}
-  <li><a href="{{ post.url }}">{% if post.title %}{{ post.title }}{% else %}{{ post.url }}{% endif %}</a>{% if post.date %} <time datetime="{{ post.date | date }}">{{ post.date | date }}</time>{% endif %}{% if post.count %} <span class="count">({{ post.count }})</span>{% endif %}</li>
+  <li><a href="{{ site.basePath }}{{ post.url }}">{% if post.title %}{{ post.title }}{% else %}{{ post.url }}{% endif %}</a>{% if post.date %} <time datetime="{{ post.date | date }}">{{ post.date | date }}</time>{% endif %}{% if post.count %} <span class="count">({{ post.count }})</span>{% endif %}</li>
 {% endfor %}
 </ul>
 {% endblock %}

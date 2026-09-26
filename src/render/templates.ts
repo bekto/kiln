@@ -150,6 +150,10 @@ export async function loadTemplates(
     page: Page,
     opts: RenderDocumentOptions,
   ): Promise<string> {
+    // Hosting subpath (T012 seeds it from site.url's path); default "" so
+    // hand-built test contexts render exactly as before.
+    const basePath =
+      typeof opts.site.basePath === "string" ? opts.site.basePath : "";
     // Markdown phase: the env carries the page so feature plugins can
     // attach per-page data (e.g. doc.data.toc) during render. A renderer
     // crash (buggy extension rule) is a markdown-stage failure — the
@@ -157,6 +161,7 @@ export async function loadTemplates(
     const md = createRenderer({
       extensions: opts.extensions,
       currentUrl: opts.url,
+      basePath,
     });
     let content: string;
     try {
@@ -167,7 +172,7 @@ export async function loadTemplates(
     // Layout phase: extra first so page/site/content always win.
     const context = {
       ...opts.extra,
-      site: opts.site,
+      site: { basePath, ...opts.site },
       page: pageView(page),
       content,
     };

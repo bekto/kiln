@@ -37,7 +37,7 @@
 <li>
 {% endif %}
 {% endif %}
-<a href="{{ h.url }}">{{ h.text }}</a>
+<a href="{{ site.basePath }}{{ h.url }}">{{ h.text }}</a>
 {% set _ = stack.push(h.level) %}
 {% if loop.last %}
 </li></ul>{% if stack.length > 1 %}</li></ul>{% endif %}{% if stack.length > 2 %}</li></ul>{% endif %}
