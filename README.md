@@ -1,6 +1,6 @@
 # Kiln
 
-![CI](https://github.com/<owner>/<repo>/actions/workflows/ci.yml/badge.svg) ![npm](https://img.shields.io/npm/v/kiln.svg)
+![CI](https://github.com/bekto/kiln/actions/workflows/ci.yml/badge.svg) ![npm](https://img.shields.io/npm/v/kiln.svg)
 
 A static site generator that bakes Markdown into fast websites.
 
