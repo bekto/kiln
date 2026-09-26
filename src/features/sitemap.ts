@@ -3,12 +3,14 @@
  * build, as an absolute URL resolved against `site.url`, with `<lastmod>`
  * taken from the source page's frontmatter `date`.
  *
- * The `<loc>` set is exactly `result.emitted` filtered to `.html` targets:
- * non-HTML emissions (`feed.xml`, JSON indexes) never pass the filter, and
- * this file itself is written from `onBuildEnd` so it is never in `emitted`.
- * T013's hidden drafts/future posts are removed from `site.pages` in
- * `onSite` and therefore never reach emit — no re-filtering happens here;
- * the sitemap test pins that pipeline guarantee instead.
+ * The `<loc>` set is exactly `result.emitted ∪ result.skipped` filtered to
+ * `.html` targets: non-HTML emissions (`feed.xml`, JSON indexes) never pass
+ * the filter, cache-skipped pages still exist on dist and are listed too,
+ * and this file itself is written from `onBuildEnd` so it is never in
+ * `emitted`. T013's hidden drafts/future posts are removed from
+ * `site.pages` in `onSite` and therefore never reach emit — no
+ * re-filtering happens here; the sitemap test pins that pipeline
+ * guarantee instead.
  *
  * `site.url` must be an absolute http(s) URL with a host. Missing, empty,
  * or relative values (`/blog`, `blog.example.com`, `//host`) throw before
@@ -57,7 +59,10 @@ const sitemap: Feature = {
     }
 
     const entries: Entry[] = [];
-    for (const emitted of result.emitted) {
+    // Cache-skipped pages still exist on dist, so a warm rebuild must list
+    // them too — iterating only `emitted` would empty the sitemap on a
+    // fully-cached build (T029 gate fix).
+    for (const emitted of [...result.emitted, ...result.skipped]) {
       // Only HTML pages: feed.xml / JSON indexes / sitemap.xml itself are
       // not `.html` and are excluded by construction.
       if (!emitted.file.endsWith(".html")) continue;

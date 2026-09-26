@@ -19,7 +19,8 @@
  * per-build highlighted-block counter, which makes re-invocation safe
  * (watch mode never assumes a hook fires once per process). `onBuildEnd`
  * then writes `dist/assets/hljs.css` when at least one block was
- * highlighted this build, and removes a stale file when none was.
+ * highlighted this build, and removes a stale file when none was AND
+ * every page was re-rendered (cache-skipped pages keep the theme).
  */
 import { existsSync } from "node:fs";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
@@ -147,7 +148,11 @@ const feature: Feature = {
     const { theme } = ctx.options(validateOptions);
     const cssFile = path.join(result.distDir, "assets", "hljs.css");
     if (highlightedBlocks === 0) {
-      // Nothing highlighted this build: no theme ships (stale file included).
+      // Nothing highlighted in pages rendered this build. Cache-skipped
+      // pages may still carry hljs classes — keep any existing theme
+      // rather than break them (T029 gate fix); remove it only when every
+      // page was re-rendered and none used highlighting.
+      if (result.skipped.length > 0) return;
       await rm(cssFile, { force: true });
       return;
     }

@@ -1,0 +1,35 @@
+<!--
+  T028's live-reload client. No site template references this file: the
+  serve-time injection middleware in src/server/reload.ts reads it and
+  splices the contents into every text/html response just before </body>,
+  so `kiln build` output on disk never contains the script. An HTML comment
+  rather than a nunjucks {# #} because injection pastes the file into
+  served pages verbatim.
+-->
+<script>
+  (() => {
+    // Shared backoff ladder: 1s → 2s → 4s → 8s → capped at 10s.
+    let delay = 1000;
+    const connect = () => {
+      const source = new EventSource("/__reload");
+      source.onopen = () => {
+        // A successful open resets the ladder before the next outage.
+        delay = 1000;
+      };
+      // Reload only when the server says so: the initial connection and
+      // every silent reconnect (server restart) must never reload alone.
+      source.addEventListener("reload", () => {
+        location.reload();
+      });
+      source.onerror = () => {
+        // Own the reconnect so the browser's built-in retry cannot race the
+        // ladder: close this source, wait out the delay, open a new one.
+        source.close();
+        const wait = delay;
+        delay = Math.min(delay * 2, 10000);
+        setTimeout(connect, wait);
+      };
+    };
+    connect();
+  })();
+</script>

@@ -346,12 +346,18 @@ test("layout: bogus fails the build with 'template not found' naming it", async 
   });
 });
 
-test("two sequential builds in one process return equal emitted (watch-mode precondition)", async () => {
+test("two sequential builds in one process are safe; cache skips the second (watch-mode precondition)", async () => {
   await withProject(PROJECT, async () => {
     const first = await capture(() => build());
     const second = await capture(() => build());
-    assert.equal(first.value.emitted.length, second.value.emitted.length);
-    assert.deepEqual(first.value.emitted, second.value.emitted);
+    // Both runs must account for the identical page set — emitted on a
+    // cold build, cache-skipped on the warm one (T029).
+    assert.deepEqual(
+      [...second.value.emitted, ...second.value.skipped],
+      [...first.value.emitted, ...first.value.skipped],
+    );
+    assert.equal(second.value.emitted.length, 0);
+    assert.equal(second.value.skipped.length, first.value.emitted.length);
     assert.deepEqual(second.value.featureErrors, []);
   });
 });
