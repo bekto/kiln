@@ -305,5 +305,3 @@ More guides: [content model](docs/content.md),
   (serialized because probe tests mutate `src/features/`).
 - Architecture and extension seams:
   [docs/architecture.md](docs/architecture.md).
-- Ticket and ownership history (source of truth):
-  [PLAN.md](PLAN.md).

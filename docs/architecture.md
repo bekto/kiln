@@ -3,8 +3,7 @@
 Kiln is a serial pipeline spine with two auto-discovery seams: commands
 (`src/commands/*.ts`) and features (`src/features/*.ts`). Nothing in core
 code imports a feature; everything optional plugs in through the hooks
-below. This page is the map — [PLAN.md](../PLAN.md) is the source of
-truth for the ticket/ownership history behind it.
+below. This page is the map of how those pieces fit together.
 
 ## Pipeline overview
 
@@ -67,8 +66,8 @@ prints with partial counts, and the process exits 1.
 
 These seams are frozen registration points: two tickets may extend the
 system in parallel only by adding files, never by editing shared
-registries — the concurrency rules in [PLAN.md](../PLAN.md) say no two
-tickets in a batch edit the same file.
+registries — the concurrency rule is that no two tickets in a batch edit
+the same file.
 
 ### Command auto-discovery
 
@@ -118,10 +117,3 @@ renderer never imports or discovers a feature module itself.
 unvalidated and each feature reads (and may write) its own fields. The
 conventions for the shared fields are documented in
 [content model](content.md).
-
-## Source of truth
-
-This page describes shipped structure; the ticket index, batch
-composition, and file-ownership history live in
-[PLAN.md](../PLAN.md) — read it when you need to know *why* a file
-belongs where it does.

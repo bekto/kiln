@@ -11,9 +11,7 @@
     "templates",
     "assets",
     "docs",
-    "PLAN.md",
-    "README.md",
-    "CHANGELOG.md"
+    "README.md"
   ],
   "engines": {
     "node": ">=24"
