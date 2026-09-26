@@ -26,8 +26,9 @@ import { createRequire } from "node:module";
 import path from "node:path";
 import { promisify } from "node:util";
 import type { Page } from "../content/document.ts";
-import { createRenderer } from "../content/markdown.ts";
+import { asMarkdownError, createRenderer } from "../content/markdown.ts";
 import type { MarkdownExtension } from "../content/markdown.ts";
+import { KilnError, projectRelative } from "../errors.ts";
 
 const require = createRequire(import.meta.url);
 
@@ -108,7 +109,9 @@ export async function loadTemplates(
   const root = path.resolve(templatesDir);
   const info = await stat(root).catch(() => null);
   if (info === null || !info.isDirectory()) {
-    throw new Error(`${root}: templates directory not found`);
+    throw new KilnError("template", `${root}: templates directory not found`, {
+      file: projectRelative(root),
+    });
   }
   const partials = path.join(root, "partials");
   // Error messages echo the directories as the caller named them (relative
@@ -138,7 +141,7 @@ export async function loadTemplates(
     try {
       return (await renderAsync(template, data)) ?? "";
     } catch (error) {
-      if (error instanceof Error) throw wrapRenderError(error, searched);
+      if (error instanceof Error) throw wrapRenderError(error, searched, template);
       throw error;
     }
   }
@@ -148,12 +151,19 @@ export async function loadTemplates(
     opts: RenderDocumentOptions,
   ): Promise<string> {
     // Markdown phase: the env carries the page so feature plugins can
-    // attach per-page data (e.g. doc.data.toc) during render.
+    // attach per-page data (e.g. doc.data.toc) during render. A renderer
+    // crash (buggy extension rule) is a markdown-stage failure — the
+    // pipeline caller attaches the source document next.
     const md = createRenderer({
       extensions: opts.extensions,
       currentUrl: opts.url,
     });
-    const content = md.render(page.content, { doc: page });
+    let content: string;
+    try {
+      content = md.render(page.content, { doc: page });
+    } catch (error) {
+      throw asMarkdownError(error);
+    }
     // Layout phase: extra first so page/site/content always win.
     const context = {
       ...opts.extra,
@@ -177,10 +187,12 @@ function layoutFor(page: Page): string {
   const layout = page.data.layout;
   if (layout === undefined) return "post.html";
   if (typeof layout !== "string") {
-    throw new Error(
+    throw new KilnError(
+      "template",
       `${page.path}: layout must be a string, got ${
         typeof layout
       } (${describe(layout)})`,
+      { file: projectRelative(page.path) },
     );
   }
   return layout.endsWith(".html") ? layout : `${layout}.html`;
@@ -199,37 +211,61 @@ function describe(value: unknown): string {
 
 /**
  * Normalize a nunjucks render failure into the stable messages this engine
- * promises: missing templates gain the directories that were searched, and
- * strict undefined-variable failures become
- * `<template>: line <n>: undefined variable "<name>"` (nunjucks' own text
- * says only "attempted to output null or undefined value", so the variable
- * is read back from the source at the reported line/column).
+ * promises, wrapped as a `stage: "template"` {@link KilnError}:
+ * - missing templates gain the directories that were searched (byte-
+ *   identical message; the requested name becomes the structured `file`);
+ * - strict undefined-variable failures keep T009's exact
+ *   `<template>: line <n>: undefined variable "<name>"` message (nunjucks'
+ *   own text says only "attempted to output null or undefined value", so the
+ *   variable is read back from the source at the reported line/column),
+ *   with `file`/`line`/`col` mirroring that position;
+ * - any other located failure is normalized to `<file>:<line> — <reason>`;
+ * - an unlocated failure (e.g. a filter throwing) is prefixed with the
+ *   template being rendered, so every message names its source.
  */
-function wrapRenderError(error: Error, searched: string[]): Error {
+function wrapRenderError(
+  error: Error,
+  searched: string[],
+  template: string,
+): KilnError {
   const message = error.message;
 
   const missing = /template not found: (\S+)/.exec(message);
   if (missing !== null) {
-    return new Error(
+    return new KilnError(
+      "template",
       `template not found: "${missing[1]}" (searched: ${searched.join(", ")})`,
+      { file: missing[1], cause: error },
     );
   }
 
   const located =
     /\(([^()\n]+)\) \[Line (\d+)(?:, Column (\d+))?\]/.exec(message);
-  if (
-    located !== null &&
-    message.includes("attempted to output null or undefined value")
-  ) {
+  if (located !== null) {
     const file = located[1];
     const line = Number(located[2]);
-    const variable = variableAt(file, line, Number(located[3] ?? "1"));
-    return new Error(
-      `${path.basename(file)}: line ${line}: undefined variable "${variable}"`,
-    );
+    const col = located[3] !== undefined ? Number(located[3]) : undefined;
+    const position = {
+      file: projectRelative(file),
+      line,
+      ...(col !== undefined ? { col } : {}),
+    };
+    if (message.includes("attempted to output null or undefined value")) {
+      const variable = variableAt(file, line, col ?? 1);
+      return new KilnError(
+        "template",
+        `${path.basename(file)}: line ${line}: undefined variable "${variable}"`,
+        { ...position, cause: error },
+      );
+    }
+    const reason = message.replace(located[0], "").trim();
+    return new KilnError("template", `${position.file}:${line} — ${reason}`, {
+      ...position,
+      cause: error,
+    });
   }
 
-  return error;
+  return new KilnError("template", `${template}: ${message}`, { cause: error });
 }
 
 /**

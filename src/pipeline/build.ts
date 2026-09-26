@@ -7,13 +7,19 @@
  *   → onBuildEnd → report
  * ```
  *
- * Failure split: non-feature failures (config, discovery, template, emit,
- * asset, cache-load) THROW so T002's CLI prints `kiln: <message>` and exits 1
- * with no report; feature failures — any hook rejection, including
- * `ctx.options()` validation, plus invalid feature modules — are RECORDED:
- * the build stops immediately (no further hooks or stages), the report still
+ * Failure split (T031): FATAL — `stage: "config"` (there is no build
+ * without config) and `stage: "build"` (unexpected orchestrator/setup
+ * failure) reject as one KilnError and nothing further runs; the CLI prints
+ * a single `kiln: [stage] <message>` line. COLLECTED — `frontmatter`,
+ * `markdown`, `template`, `emit` are recorded per page/file and the stage
+ * moves on (one broken page never hides the others). Feature failures —
+ * any hook rejection, including `ctx.options()` validation, plus invalid
+ * feature modules — keep T012's contract: RECORDED in `featureErrors`, the
+ * build stops immediately (no further hooks or stages), the report still
  * prints with partial counts, and `build()` returns it with non-empty
- * `featureErrors`.
+ * `featureErrors`. Any run that recorded a non-feature error rejects with
+ * one {@link BuildErrors} carrying every recorded error after the report
+ * prints, so the command renders a single numbered block.
  *
  * Re-invocation safety (watch mode): config is loaded fresh every call, and
  * the extensions array, feature contexts, cache handle, and clock are
@@ -30,11 +36,17 @@ import { computeCollections } from "../content/collections.ts";
 import { discover } from "../content/discover.ts";
 import type { Page } from "../content/document.ts";
 import type { MarkdownExtension } from "../content/markdown.ts";
+import {
+  BuildErrors,
+  errorMessage,
+  FeatureHookFailure,
+  KilnError,
+} from "../errors.ts";
 import type { BuildEnd, BuildFlags, FeatureError } from "../feature.ts";
 import { copyAssets } from "../render/assets.ts";
 import { emitPages, pageOutputFor } from "../render/emit.ts";
 import type { EmittedPage } from "../render/emit.ts";
-import { discoverFeatures, FeatureLoadError } from "./features.ts";
+import { discoverFeatures, FeatureLoadError, wrapFeatureError } from "./features.ts";
 import type { FeatureEntry } from "./features.ts";
 import { formatReport } from "./report.ts";
 import type { BuildReport } from "./report.ts";
@@ -72,28 +84,29 @@ type CreateCache = (options: {
 }) => BuildCache;
 
 /**
- * A feature hook failure thrown out of a stage that otherwise raises
- * non-feature errors (only `extendMarkdown`, invoked inside T009's render) —
- * recognized at the stage boundary and routed to the report instead.
+ * Run one full build. Prints the formatted report to stdout before returning
+ * it (feature failures included); only non-feature failures reject.
+ *
+ * Fatal `stage: "config"`/`stage: "build"` failures reject immediately as a
+ * single {@link KilnError} (nothing further runs). Collected failures are
+ * recorded per stage, the build keeps going, and — once any non-feature
+ * error exists — the run rejects with a single {@link BuildErrors} carrying
+ * every recorded error (pipeline order) after the report has printed, so
+ * the command can render one numbered block.
  */
-class FeatureHookFailure extends Error {
-  readonly feature: string;
-  readonly hook: string;
-  readonly hookError: unknown;
-
-  constructor(feature: string, hook: string, hookError: unknown) {
-    super(`feature ${feature} failed in ${hook}`);
-    this.feature = feature;
-    this.hook = hook;
-    this.hookError = hookError;
+export async function build(options?: BuildOptions): Promise<BuildReport> {
+  try {
+    return await runBuild(options);
+  } catch (error) {
+    if (error instanceof KilnError || error instanceof BuildErrors) throw error;
+    // Unexpected orchestrator/setup failure (discovery, cache, assets, …):
+    // fatal stage "build", message preserved verbatim.
+    throw new KilnError("build", errorMessage(error), { cause: error });
   }
 }
 
-/**
- * Run one full build. Prints the formatted report to stdout before returning
- * it (feature failures included); only non-feature failures reject.
- */
-export async function build(options?: BuildOptions): Promise<BuildReport> {
+/** The pipeline body {@link build} wraps; see there for the failure policy. */
+async function runBuild(options?: BuildOptions): Promise<BuildReport> {
   const startedAt = Date.now();
   // Partial flags from a caller still normalize to full booleans.
   const flags: BuildFlags = {
@@ -107,18 +120,33 @@ export async function build(options?: BuildOptions): Promise<BuildReport> {
     durationMs: 0,
     featureErrors: [],
   };
-  // Stop the clock, print, return — every exit path funnels through here.
+  // T031's collector: every stage pushes its KilnErrors here in pipeline
+  // order (discovery reads files sorted, so the recording is deterministic).
+  const errors: KilnError[] = [];
+  // Stop the clock, print, return — every exit path funnels through here,
+  // except a run that recorded collected failures: the report still prints,
+  // then every recorded error leaves as one BuildErrors rejection.
   const finish = (): BuildReport => {
     report.durationMs = Date.now() - startedAt;
     process.stdout.write(`${formatReport(report)}\n`);
+    if (errors.some((error) => error.stage !== "feature")) {
+      throw new BuildErrors(errors);
+    }
     return report;
   };
 
   // Config: loaded fresh per call so watch-mode re-invocations see edits.
+  // A validation/import failure is a fatal stage "config" KilnError — it
+  // escapes unchanged (src/commands/build.ts prints the single line).
   const config = await loadConfig(options?.cwd);
 
-  // Discovery (T007) — path-sorted pages; failures throw.
-  const site = await discover({ contentDir: config.contentDir });
+  // Discovery (T007) — path-sorted pages; setup failures throw, while every
+  // broken document is recorded and skipped so N broken files yield N
+  // collected errors and the good pages still build.
+  const site = await discover({
+    contentDir: config.contentDir,
+    onError: (error) => errors.push(error),
+  });
   // Seed the site bag as a mutable copy of config.site ({title, url,
   // description?}); features own it from here (rule 5).
   site.data = { ...config.site };
@@ -134,6 +162,9 @@ export async function build(options?: BuildOptions): Promise<BuildReport> {
   } catch (error) {
     if (error instanceof FeatureLoadError) {
       report.featureErrors.push(error.featureError);
+      errors.push(
+        wrapFeatureError(error.featureError.feature, error),
+      );
       return finish();
     }
     throw error;
@@ -177,9 +208,10 @@ export async function build(options?: BuildOptions): Promise<BuildReport> {
         report.featureErrors.push({
           feature: entry.file,
           hook: "onDocument",
-          message: reason(error),
+          message: errorMessage(error),
           doc: page.path,
         });
+        errors.push(wrapFeatureError(entry.file, error, page.path));
         return finish();
       }
     }
@@ -197,8 +229,9 @@ export async function build(options?: BuildOptions): Promise<BuildReport> {
       report.featureErrors.push({
         feature: entry.file,
         hook: "onSite",
-        message: reason(error),
+        message: errorMessage(error),
       });
+      errors.push(wrapFeatureError(entry.file, error));
       return finish();
     }
   }
@@ -211,8 +244,9 @@ export async function build(options?: BuildOptions): Promise<BuildReport> {
   const cache = await loadCache(config, flags);
 
   // Emit (T010): render+write every page (cache skips included). Template/
-  // emit/write failures throw; a sync extendMarkdown failure arrives as
-  // FeatureHookFailure and takes the report path.
+  // markdown/emit failures are recorded per page (that page is skipped,
+  // every other page still renders); a sync extendMarkdown failure arrives
+  // as FeatureHookFailure and takes the report path.
   let emitted: EmittedPage[];
   let skipped: EmittedPage[];
   try {
@@ -222,6 +256,7 @@ export async function build(options?: BuildOptions): Promise<BuildReport> {
       extra: { collections, flags },
       shouldSkip:
         cache === undefined ? undefined : (page) => cache.shouldSkip(page),
+      onError: (error) => errors.push(error),
     });
     emitted = result.emitted;
     skipped = result.skipped;
@@ -230,8 +265,9 @@ export async function build(options?: BuildOptions): Promise<BuildReport> {
       report.featureErrors.push({
         feature: error.feature,
         hook: error.hook,
-        message: reason(error.hookError),
+        message: errorMessage(error.hookError),
       });
+      errors.push(wrapFeatureError(error.feature, error.hookError));
       return finish();
     }
     throw error;
@@ -246,8 +282,9 @@ export async function build(options?: BuildOptions): Promise<BuildReport> {
     report.featureErrors.push({
       feature: failure.entry.file,
       hook: "extendMarkdown",
-      message: reason(failure.error),
+      message: errorMessage(failure.error),
     });
+    errors.push(wrapFeatureError(failure.entry.file, failure.error));
     return finish();
   }
 
@@ -284,8 +321,9 @@ export async function build(options?: BuildOptions): Promise<BuildReport> {
       report.featureErrors.push({
         feature: entry.file,
         hook: "onBuildEnd",
-        message: reason(error),
+        message: errorMessage(error),
       });
+      errors.push(wrapFeatureError(entry.file, error));
       break;
     }
   }
@@ -320,7 +358,7 @@ async function loadCache(
   try {
     mod = (await import(url.href)) as CacheModule;
   } catch (error) {
-    throw new Error(`src/pipeline/cache.ts: ${reason(error)}`, { cause: error });
+    throw new Error(`src/pipeline/cache.ts: ${errorMessage(error)}`, { cause: error });
   }
   if (typeof mod.createCache !== "function") {
     throw new Error("src/pipeline/cache.ts: missing createCache export");
@@ -333,11 +371,6 @@ async function loadCache(
       flags,
     });
   } catch (error) {
-    throw new Error(`src/pipeline/cache.ts: ${reason(error)}`, { cause: error });
+    throw new Error(`src/pipeline/cache.ts: ${errorMessage(error)}`, { cause: error });
   }
-}
-
-/** Failure text for a thrown value, mirroring `src/cli.ts`. */
-function reason(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
 }

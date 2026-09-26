@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% if page.title %}{{ page.title }} · {{ site.title }}{% else %}{{ site.title }}{% endif %}</title>
+<meta name="description" content="{{ site.description }}">
+<link rel="alternate" type="application/atom+xml" href="/feed.xml">
+<link rel="stylesheet" href="/styles.css">
+<link rel="stylesheet" href="/assets/hljs.css">
+</head>
+<body>
+<header class="site-header">
+<a class="site-title" href="/">{{ site.title }}</a>
+<nav class="site-nav">
+<a href="/">Home</a>
+<a href="/about/">About</a>
+<a href="/projects/">Projects</a>
+<a href="/tags/">Tags</a>
+<a href="/feed.xml">Feed</a>
+</nav>
+{% include "search.html" %}
+</header>
+<main>
+{% block content %}{% endblock %}
+</main>
+<footer class="site-footer">
+<p>{{ site.description }} · <a href="/feed.xml">Atom feed</a></p>
+</footer>
+</body>
+</html>

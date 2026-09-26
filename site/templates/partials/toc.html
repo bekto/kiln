@@ -1,0 +1,46 @@
+{#
+  T017's table of contents — renders `page.toc` (flat { level, text, id,
+  url } rows, already depth-filtered by the markdown rule) as a nested
+  <nav><ul>. Nesting is a stack machine over heading levels, kept in
+  `stack` (the levels currently open, deepest last, never longer than 3
+  because rows only carry levels 1..depth):
+
+  - pop while the top level >= the incoming level, closing each popped
+    <li> plus the <ul> holding it (a pop at depth 1 closes only the <li>
+    — the root <ul> stays open for siblings);
+  - then a deeper level opens <ul><li> inside the current frame, an equal
+    level a sibling <li>, and a first-ever row the root <ul><li>;
+  - on the last row every still-open frame closes as </li></ul> — one pair
+    per stack entry, the last pair closing the root <ul>.
+
+  New rows always stack (their own <li> stays open for children), so the
+  pop checks below are unrolled for the maximum stack length of 3.
+#}
+<nav class="toc">
+{% set stack = [] %}
+{% for h in page.toc %}
+{% if loop.first %}
+<ul><li>
+{% else %}
+{% if stack.length > 0 and stack[stack.length - 1] >= h.level %}
+{% if stack.length == 1 %}</li>{% else %}</li></ul>{% endif %}{% set _ = stack.pop() %}
+{% if stack.length > 0 and stack[stack.length - 1] >= h.level %}
+{% if stack.length == 1 %}</li>{% else %}</li></ul>{% endif %}{% set _ = stack.pop() %}
+{% if stack.length > 0 and stack[stack.length - 1] >= h.level %}
+{% if stack.length == 1 %}</li>{% else %}</li></ul>{% endif %}{% set _ = stack.pop() %}
+{% endif %}
+{% endif %}
+{% if stack.length > 0 %}<ul><li>{% else %}<li>{% endif %}
+{% elif stack.length > 0 %}
+<ul><li>
+{% else %}
+<li>
+{% endif %}
+{% endif %}
+<a href="{{ h.url }}">{{ h.text }}</a>
+{% set _ = stack.push(h.level) %}
+{% if loop.last %}
+</li></ul>{% if stack.length > 1 %}</li></ul>{% endif %}{% if stack.length > 2 %}</li></ul>{% endif %}
+</nav>
+{% endif %}
+{% endfor %}

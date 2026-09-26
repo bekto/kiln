@@ -12,6 +12,7 @@
 import MarkdownItCtor from "markdown-it";
 import type { MarkdownIt, RendererRule } from "markdown-it";
 import { urlForPath } from "./slug.ts";
+import { KilnError } from "../errors.ts";
 
 /**
  * A markdown-it plugin registration hook — identical in shape to the
@@ -55,15 +56,38 @@ export function createRenderer(options?: RenderOptions): MarkdownIt {
 }
 
 /**
+ * Re-wrap a failure raised while rendering markdown (a buggy extension's
+ * fence renderer, pathological renderer state) as a `stage: "markdown"`
+ * {@link KilnError} carrying the original message and cause. T006's
+ * guarantee stands: syntactically valid markdown on the stock renderer never
+ * throws — only renderer crashes reach this. The pipeline caller, which
+ * knows the document, attaches `file` afterwards.
+ */
+export function asMarkdownError(error: unknown): KilnError {
+  if (error instanceof KilnError) return error;
+  return new KilnError(
+    "markdown",
+    error instanceof Error ? error.message : String(error),
+    { cause: error },
+  );
+}
+
+/**
  * Render `source` to GFM-flavored HTML: create, render, return. Malformed or
  * merely weird markdown degrades to ordinary markdown-it output — this never
- * throws on markdown input.
+ * throws on markdown input; failures thrown by an installed renderer rule
+ * surface as a `stage: "markdown"` {@link KilnError}.
  */
 export function renderMarkdown(
   source: string,
   options?: RenderOptions,
 ): string {
-  return createRenderer(options).render(source);
+  const md = createRenderer(options);
+  try {
+    return md.render(source);
+  } catch (error) {
+    throw asMarkdownError(error);
+  }
 }
 
 /**

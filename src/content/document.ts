@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import matter from "gray-matter";
+import { KilnError, projectRelative } from "../errors.ts";
 
 /**
  * One Markdown source file parsed into frontmatter and body. `data` is fully
@@ -51,7 +52,11 @@ export function parseDocument(filePath: string, raw: string): Document {
   // whatever the document is (array/scalar for non-mapping frontmatter).
   const data: unknown = parsed.data;
   if (!isMapping(data)) {
-    throw new Error(`${filePath}: frontmatter must be a YAML mapping`);
+    throw new KilnError(
+      "frontmatter",
+      `${filePath}: frontmatter must be a YAML mapping`,
+      { file: projectRelative(filePath) },
+    );
   }
   normalizeDate(filePath, data);
   return { path: filePath, data, content: parsed.content };
@@ -83,18 +88,35 @@ function describeType(value: unknown): string {
  * Wrap the YAML parser's exception so the message carries the file path and
  * the parser's 1-based line position. gray-matter hands js-yaml the raw
  * frontmatter block including the newline after the opening `---`, so
- * js-yaml's line numbers line up with the file's.
+ * js-yaml's line numbers line up with the file's. The structured fields
+ * mirror those numbers exactly (`col` only when the parser reports one).
  */
-function frontmatterError(filePath: string, error: unknown): Error {
+function frontmatterError(filePath: string, error: unknown): KilnError {
+  const file = projectRelative(filePath);
   if (typeof error === "object" && error !== null) {
-    const { mark, reason } = error as { mark?: { line?: unknown }; reason?: unknown };
+    const { mark, reason } = error as {
+      mark?: { line?: unknown; column?: unknown };
+      reason?: unknown;
+    };
     if (typeof mark === "object" && mark !== null && typeof mark.line === "number") {
       const detail = typeof reason === "string" ? reason : "invalid YAML";
-      return new Error(`${filePath}: invalid frontmatter at line ${mark.line + 1}: ${detail}`);
+      return new KilnError(
+        "frontmatter",
+        `${filePath}: invalid frontmatter at line ${mark.line + 1}: ${detail}`,
+        {
+          file,
+          line: mark.line + 1,
+          ...(typeof mark.column === "number" ? { col: mark.column + 1 } : {}),
+          cause: error,
+        },
+      );
     }
   }
   const message = error instanceof Error ? error.message : String(error);
-  return new Error(`${filePath}: invalid frontmatter: ${message}`);
+  return new KilnError("frontmatter", `${filePath}: invalid frontmatter: ${message}`, {
+    file,
+    cause: error,
+  });
 }
 
 /**
@@ -107,7 +129,11 @@ function normalizeDate(filePath: string, data: Record<string, unknown>): void {
   const value = data.date;
   const date = value instanceof Date ? value : typeof value === "string" ? new Date(value) : undefined;
   if (date === undefined || Number.isNaN(date.getTime())) {
-    throw new Error(`${filePath}: "date" must be a valid date (got ${describeType(value)})`);
+    throw new KilnError(
+      "frontmatter",
+      `${filePath}: "date" must be a valid date (got ${describeType(value)})`,
+      { file: projectRelative(filePath) },
+    );
   }
   data.date = date;
 }

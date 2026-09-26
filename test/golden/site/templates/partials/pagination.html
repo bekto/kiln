@@ -1,0 +1,8 @@
+{# Pagination nav — the fixture's one partial include, pulled in by
+   index.html. Emits nothing until a list carries multi-page data. #}
+{% if page.pagination and page.pagination.totalPages > 1 %}
+<nav class="pagination">
+{% if page.pagination.prevUrl %}<a rel="prev" href="{{ page.pagination.prevUrl }}">Previous</a>{% endif %}
+{% if page.pagination.nextUrl %}<a rel="next" href="{{ page.pagination.nextUrl }}">Next</a>{% endif %}
+</nav>
+{% endif %}

@@ -1,0 +1,73 @@
+[
+  {
+    "title": "About",
+    "url": "/about/",
+    "excerpt": "A static page describing the golden site.",
+    "tags": []
+  },
+  {
+    "title": "Home",
+    "url": "/",
+    "excerpt": "The golden home page, listing the newest posts first.",
+    "tags": []
+  },
+  {
+    "title": "Fifth post",
+    "url": "/posts/fifth/",
+    "excerpt": "The fifth published post.",
+    "tags": [
+      "alpha"
+    ]
+  },
+  {
+    "title": "First post",
+    "url": "/posts/first/",
+    "excerpt": "The first published post, with a fenced TypeScript block.",
+    "tags": [
+      "alpha"
+    ]
+  },
+  {
+    "title": "你好，世界！ 🎉",
+    "url": "/posts/hello-世界/",
+    "excerpt": "A published post whose filename, URL, and title are all unicode.",
+    "tags": [
+      "gamma"
+    ]
+  },
+  {
+    "title": "Second post",
+    "url": "/posts/second/",
+    "excerpt": "A hand-written excerpt that overrides the derived one.",
+    "tags": [
+      "alpha",
+      "beta"
+    ]
+  },
+  {
+    "title": "Third post",
+    "url": "/posts/third/",
+    "excerpt": "The third published post.",
+    "tags": [
+      "beta"
+    ]
+  },
+  {
+    "title": "Home",
+    "url": "/page/2/",
+    "excerpt": "",
+    "tags": []
+  },
+  {
+    "title": "Home",
+    "url": "/page/3/",
+    "excerpt": "",
+    "tags": []
+  },
+  {
+    "title": "alpha",
+    "url": "/tags/alpha/page/2/",
+    "excerpt": "",
+    "tags": []
+  }
+]

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Golden site</title>
+  <id>https://golden.example.com/</id>
+  <updated>2024-05-05T00:00:00.000Z</updated>
+  <link rel="self" href="https://golden.example.com/feed.xml"/>
+  <entry>
+    <title>Fifth post</title>
+    <id>https://golden.example.com/posts/fifth/</id>
+    <updated>2024-05-05T00:00:00.000Z</updated>
+    <link rel="alternate" href="https://golden.example.com/posts/fifth/"/>
+    <content type="html">&lt;p&gt;The fifth published post.&lt;/p&gt;
+</content>
+  </entry>
+  <entry>
+    <title>你好，世界！ 🎉</title>
+    <id>https://golden.example.com/posts/hello-世界/</id>
+    <updated>2024-04-04T00:00:00.000Z</updated>
+    <link rel="alternate" href="https://golden.example.com/posts/hello-世界/"/>
+    <content type="html">&lt;p&gt;A published post whose filename, URL, and title are all unicode.&lt;/p&gt;
+</content>
+  </entry>
+  <entry>
+    <title>Third post</title>
+    <id>https://golden.example.com/posts/third/</id>
+    <updated>2024-03-03T00:00:00.000Z</updated>
+    <link rel="alternate" href="https://golden.example.com/posts/third/"/>
+    <content type="html">&lt;p&gt;The third published post.&lt;/p&gt;
+</content>
+  </entry>
+  <entry>
+    <title>Second post</title>
+    <id>https://golden.example.com/posts/second/</id>
+    <updated>2024-02-02T00:00:00.000Z</updated>
+    <link rel="alternate" href="https://golden.example.com/posts/second/"/>
+    <content type="html">&lt;p&gt;The second published post, carrying a frontmatter excerpt override.&lt;/p&gt;
+</content>
+  </entry>
+  <entry>
+    <title>First post</title>
+    <id>https://golden.example.com/posts/first/</id>
+    <updated>2024-01-01T00:00:00.000Z</updated>
+    <link rel="alternate" href="https://golden.example.com/posts/first/"/>
+    <content type="html">&lt;p&gt;The first published post, with a fenced TypeScript block.&lt;/p&gt;
+&lt;h2&gt;Getting started&lt;/h2&gt;
+&lt;p&gt;Prose under the first heading.&lt;/p&gt;
+&lt;h2&gt;Next steps&lt;/h2&gt;
+&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;export function greet(name: string): string {
+  return `Hello, ${name}`;
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Closing prose for the first post.&lt;/p&gt;
+</content>
+  </entry>
+</feed>

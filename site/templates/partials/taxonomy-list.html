@@ -1,0 +1,17 @@
+{#
+  Taxonomy list (T014) — the one listing partial for tag/category archives
+  and the /tags/ / /categories/ index pages. Serves as the page layout
+  (T009 resolves `layout: "taxonomy-list"` through the partials search
+  path) and extends T009's index layout, so archive pages inherit the
+  index skeleton while the content block renders `page.posts` instead of
+  the site-wide page list. Strict mode: every variable is guarded.
+#}
+{% extends "index.html" %}
+{% block content %}
+<h1>{% if page.title %}{{ page.title }}{% elif site.title %}{{ site.title }}{% else %}Kiln site{% endif %}</h1>
+<ul>
+{% for post in page.posts %}
+  <li><a href="{{ post.url }}">{% if post.title %}{{ post.title }}{% else %}{{ post.url }}{% endif %}</a>{% if post.date %} <time datetime="{{ post.date | date }}">{{ post.date | date }}</time>{% endif %}{% if post.count %} <span class="count">({{ post.count }})</span>{% endif %}</li>
+{% endfor %}
+</ul>
+{% endblock %}

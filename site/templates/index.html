@@ -1,0 +1,28 @@
+{#- Home list layout — renders the paginated cards from `page.posts`
+    (T015 replaces them per page) with excerpt (T020), date, and reading
+    time (T021); prev/next nav comes from `page.pagination` via the
+    shipped partial. Also inherited by the /page/N/ overflow pages, which
+    mirror the home document's layout and title. -#}
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ site.title }}</h1>
+{% if content %}<div class="lede">{{ content | safe }}</div>{% endif %}
+{% if page.posts %}
+<div class="post-list">
+{% for p in page.posts %}
+<article class="post-card">
+<h2><a href="{{ p.url }}">{{ p.title }}</a></h2>
+<p class="meta">
+{%- if p.date %} <time datetime="{{ p.date | date }}">{{ p.date | date }}</time>{% endif %}
+{%- if p.readingTime %} <span class="reading-time">{{ p.readingTime }} min read</span>{% endif %}
+</p>
+{% if p.excerpt %}<p class="excerpt">{{ p.excerpt }}</p>{% endif %}
+{% if p.tags %}
+<p class="tags">{% for t in p.tags %}<a class="tag" href="/tags/{{ t }}/">{{ t }}</a>{% endfor %}</p>
+{% endif %}
+</article>
+{% endfor %}
+</div>
+{% endif %}
+{% include "pagination.html" %}
+{% endblock %}

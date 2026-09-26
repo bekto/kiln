@@ -1,0 +1,29 @@
+{#- Post layout — TOC (T017, rendered from `page.toc` through the shipped
+    partial), reading time + word count (T021), tag links (T014), and the
+    related-posts list (T022). Also the default layout for static pages,
+    so every section is guarded. -#}
+{% extends "base.html" %}
+{% block content %}
+<article class="post">
+{% if page.title %}<h1>{{ page.title }}</h1>{% endif %}
+<p class="meta">
+{%- if page.date %} <time datetime="{{ page.date | date }}">{{ page.date | date }}</time>{% endif %}
+{%- if page.readingTime %} <span class="reading-time">{{ page.readingTime }} min read ({{ page.words }} words)</span>{% endif %}
+</p>
+{% if page.toc %}{% include "toc.html" %}{% endif %}
+{{ content | safe }}
+{% if page.tags %}
+<p class="tags">{% for t in page.tags %}<a class="tag" href="/tags/{{ t }}/">{{ t }}</a>{% endfor %}</p>
+{% endif %}
+{% if page.related %}
+<section class="related">
+<h2>Related posts</h2>
+<ul>
+{% for r in page.related %}
+<li><a href="{{ r.url }}">{{ r.title }}</a></li>
+{% endfor %}
+</ul>
+</section>
+{% endif %}
+</article>
+{% endblock %}

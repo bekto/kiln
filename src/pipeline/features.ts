@@ -20,6 +20,7 @@ import type {
   FeatureContext,
   FeatureError,
 } from "../feature.ts";
+import { errorMessage, KilnError, projectRelative } from "../errors.ts";
 
 /** Repo-relative POSIX location of the features directory (report naming). */
 const FEATURES_LABEL = "src/features";
@@ -51,6 +52,26 @@ export class FeatureLoadError extends Error {
     super(message);
     this.featureError = { feature: file, hook: "load", message };
   }
+}
+
+/**
+ * Wrap any throw from a feature hook (or module load) for T031's collector:
+ * `stage: "feature"` with the module path in `featureFile` (rendered as the
+ * `[feature src/features/<file>.ts]` tag), the document context — when the
+ * hook was invoked per-document — in `file`, the original error kept as
+ * `cause` with its message carried verbatim. The matching `FeatureError`
+ * for the report is recorded separately by the orchestrator.
+ */
+export function wrapFeatureError(
+  featureFile: string,
+  error: unknown,
+  doc?: string,
+): KilnError {
+  return new KilnError("feature", errorMessage(error), {
+    featureFile,
+    ...(doc !== undefined ? { file: projectRelative(doc) } : {}),
+    cause: error,
+  });
 }
 
 /**

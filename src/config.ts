@@ -1,6 +1,7 @@
 import { access } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { KilnError } from "./errors.ts";
 
 /** The only config filename `loadConfig` looks for, directly inside `root`. */
 export const CONFIG_FILENAME = "kiln.config.ts";
@@ -65,8 +66,10 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 }
 
 /** Every config error message starts with this prefix and names the key. */
-function configError(message: string): Error {
-  return new Error(`kiln.config.ts: ${message}`);
+function configError(message: string): KilnError {
+  return new KilnError("config", `kiln.config.ts: ${message}`, {
+    file: CONFIG_FILENAME,
+  });
 }
 
 function invalid(keyPath: string, expected: string, actual: unknown): never {
@@ -146,7 +149,18 @@ async function readConfig(configPath: string): Promise<Record<string, unknown> |
     loaded = (await import(pathToFileURL(configPath).href)) as { default?: unknown };
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
-    throw configError(`failed to load ${configPath}: ${reason}`);
+    // The position lives on the stack's first line (`<file>:<line>`), not in
+    // the message; recorded when the config file itself is where it failed.
+    const located =
+      error instanceof Error && error.stack !== undefined
+        ? new RegExp(`${CONFIG_FILENAME.replaceAll(".", "\\.")}:(\\d+)`)
+            .exec(error.stack)
+        : null;
+    throw new KilnError("config", `failed to load ${configPath}: ${reason}`, {
+      file: CONFIG_FILENAME,
+      ...(located !== null ? { line: Number(located[1]) } : {}),
+      cause: error,
+    });
   }
   const exported = loaded.default;
   if (typeof exported !== "object" || exported === null || Array.isArray(exported)) {
@@ -165,7 +179,8 @@ function resolveDir(root: string, value: unknown, fallback: string): string {
  * Load `kiln.config.ts` from `root` (default `process.cwd()`, the only
  * directory searched) and merge it over the documented defaults. Unknown
  * top-level keys are ignored; the `features` map is stored verbatim. Throws
- * `Error` with a `kiln.config.ts:`-prefixed message on invalid config.
+ * a `KilnError` with `stage: "config"` and a `kiln.config.ts:`-prefixed
+ * message on invalid config.
  */
 export async function loadConfig(root?: string): Promise<KilnConfig> {
   const projectRoot = path.resolve(root ?? process.cwd());

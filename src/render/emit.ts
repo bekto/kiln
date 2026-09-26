@@ -26,6 +26,12 @@ import {
   urlForPath,
 } from "../content/slug.ts";
 import { loadTemplates, pageView } from "./templates.ts";
+import {
+  errorMessage,
+  FeatureHookFailure,
+  KilnError,
+  projectRelative,
+} from "../errors.ts";
 
 /** One page's output pairing: its URL and the dist-relative POSIX file. */
 export interface EmittedPage {
@@ -49,6 +55,12 @@ export interface EmitOptions {
   extra?: Record<string, unknown>;
   /** Cache seam: `true` + an existing target file → skip render and write. */
   shouldSkip?: (page: Page) => boolean;
+  /**
+   * Error sink T031's collector passes: a render or write failure for one
+   * page is recorded and the loop moves on to the next page. Without it,
+   * failures reject (the original contract).
+   */
+  onError?: (error: KilnError) => void;
 }
 
 /**
@@ -79,8 +91,10 @@ export function pageOutputFor(page: Page): EmittedPage {
  * in order — either record a cache skip (`shouldSkip` + existing file) or
  * render through T009, `mkdir -p` the parent, and write UTF-8 (overwriting
  * an existing file). Zero pages short-circuit to an empty success without
- * touching the filesystem. Write failures reject with an error naming the
- * target path; template/render failures reject with T009's own messages.
+ * touching the filesystem. With no `onError` sink, write failures reject
+ * with an error naming the target path and template/render failures reject
+ * with T009's own messages; with a sink, the failed page is recorded and
+ * every other page still renders and emits.
  */
 export async function emitPages(
   site: Site,
@@ -138,18 +152,49 @@ export async function emitPages(
       }
       // Missing target defeats the skip — a lying cache cannot leave a hole.
     }
-    const html = await templates.renderDocument(page, {
-      url: out.url,
-      site: siteContext,
-      extensions: options.extensions,
-      extra: options.extra,
-    });
+    // Render, then write — a failure for this page is recorded through the
+    // sink (or rejects when none was passed) and the loop moves on.
+    let html: string;
+    try {
+      html = await templates.renderDocument(page, {
+        url: out.url,
+        site: siteContext,
+        extensions: options.extensions,
+        extra: options.extra,
+      });
+    } catch (error) {
+      // A feature hook that threw while being applied (extendMarkdown
+      // registration) travels through as control flow for the orchestrator.
+      if (error instanceof FeatureHookFailure) throw error;
+      let failure =
+        error instanceof KilnError
+          ? error
+          : new KilnError("template", errorMessage(error), { cause: error });
+      if (failure.stage === "markdown" && failure.file === undefined) {
+        // The caller knows the document being rendered — attribute the
+        // markdown-stage crash to its source file.
+        failure = new KilnError("markdown", `${page.path}: ${failure.message}`, {
+          file: projectRelative(page.path),
+          line: failure.line,
+          col: failure.col,
+          cause: error,
+        });
+      }
+      if (options.onError === undefined) throw failure;
+      options.onError(failure);
+      continue;
+    }
     try {
       await mkdir(path.dirname(target), { recursive: true });
       await writeFile(target, html, "utf8");
     } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error);
-      throw new Error(`${target}: ${reason}`, { cause: error });
+      const failure = new KilnError("emit", `${target}: ${errorMessage(error)}`, {
+        file: projectRelative(target),
+        cause: error,
+      });
+      if (options.onError === undefined) throw failure;
+      options.onError(failure);
+      continue;
     }
     emitted.push(out);
   }

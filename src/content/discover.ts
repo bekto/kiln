@@ -11,6 +11,7 @@ import path from "node:path";
 import { readDocument } from "./document.ts";
 import type { Document, Page, Site } from "./document.ts";
 import { applyPermalink, slugFromPath, urlForPath } from "./slug.ts";
+import { KilnError, projectRelative } from "../errors.ts";
 
 /** Markdown file extensions, matched case-insensitively. */
 const MARKDOWN_EXT = /\.(?:md|markdown)$/i;
@@ -27,14 +28,24 @@ const MARKDOWN_EXT = /\.(?:md|markdown)$/i;
  * the absolute source path) on parse failures. Returned pages are sorted
  * ascending by `path` in codepoint order, so two runs over the same tree
  * yield identical sequences.
+ *
+ * `onError` is the error sink T031's collector passes: with it, every broken
+ * document is recorded (files are read in sorted order, so the recorded order
+ * is deterministic) and discovery continues to the next file — N broken
+ * documents produce N collected errors, and a tree holding only broken
+ * documents yields an empty site instead of `no markdown files found`.
+ * Without it, existing callers keep the original fail-fast rejection.
  */
 export async function discover(options: {
   contentDir: string;
+  onError?: (error: KilnError) => void;
 }): Promise<Site> {
   const dir = path.resolve(options.contentDir);
   await assertDiscoverable(dir);
 
-  const pages: Page[] = [];
+  // Sorted before reading: both pages and collected errors come out in
+  // deterministic path order, not glob order.
+  const files: { filePath: string; relPath: string }[] = [];
   for await (const entry of glob(path.join(dir, "**/*"), {
     withFileTypes: true,
   })) {
@@ -51,10 +62,31 @@ export async function discover(options: {
       continue;
     }
     if (!MARKDOWN_EXT.test(entry.name)) continue;
-    pages.push(makePage(await readDocument(filePath), relPath));
+    files.push({ filePath, relPath });
+  }
+  files.sort((a, b) => compareCodepoints(a.relPath, b.relPath));
+
+  const pages: Page[] = [];
+  let collected = false;
+  for (const { filePath, relPath } of files) {
+    try {
+      pages.push(makePage(await readDocument(filePath), relPath));
+    } catch (error) {
+      if (options.onError === undefined) throw error;
+      collected = true;
+      options.onError(
+        error instanceof KilnError
+          ? error
+          : new KilnError(
+              "frontmatter",
+              error instanceof Error ? error.message : String(error),
+              { file: projectRelative(filePath), cause: error },
+            ),
+      );
+    }
   }
 
-  if (pages.length === 0) {
+  if (pages.length === 0 && !collected) {
     throw new Error(`no markdown files found under ${dir}`);
   }
   pages.sort((a, b) => compareCodepoints(a.path, b.path));
@@ -92,8 +124,10 @@ function makePage(doc: Document, relPath: string): Page {
   if ("permalink" in data) {
     const permalink = data.permalink;
     if (typeof permalink !== "string") {
-      throw new Error(
+      throw new KilnError(
+        "frontmatter",
         `${doc.path}: "permalink" must be a string (got ${describeType(permalink)})`,
+        { file: projectRelative(doc.path) },
       );
     }
     try {
@@ -105,7 +139,10 @@ function makePage(doc: Document, relPath: string): Page {
       // T005's message is precise but silent about the file — prefix it so
       // the failure names its source, matching T004's error style.
       const reason = error instanceof Error ? error.message : String(error);
-      throw new Error(`${doc.path}: ${reason}`, { cause: error });
+      throw new KilnError("frontmatter", `${doc.path}: ${reason}`, {
+        file: projectRelative(doc.path),
+        cause: error,
+      });
     }
   } else {
     url = urlForPath(relPath);
