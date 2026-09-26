@@ -77,10 +77,11 @@ runtime, no database. Any static host works.
    repo with build command
    `npm install && cd site && node ../src/cli.ts build` and publish
    directory `site/dist`.
-4. **GitHub Pages:** [`.github/workflows/ci.yml`](.github/workflows/ci.yml)
-   already runs the full test suite, builds the example site, and uploads
-   `site/dist` as a workflow artifact — add a Pages deploy step
-   (`upload-pages-artifact` + `deploy-pages`) when you're ready.
+4. **GitHub Pages (already wired in):** pushing to `main` runs the full
+   test suite, builds the example site, and deploys `site/dist` straight to
+   Pages via `upload-pages-artifact` + `deploy-pages` in
+   [`.github/workflows/ci.yml`](.github/workflows/ci.yml) — the bundled
+   example site is live at <https://bekto.github.io/kiln/>.
 5. **Your own server:** copy `dist/` to any web root
    (`root /var/www/site;` in nginx, an S3 bucket, shared hosting).
 

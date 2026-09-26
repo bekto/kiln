@@ -4,7 +4,7 @@
 export default {
   site: {
     title: 'Kiln example site',
-    url: 'https://example.com',
+    url: 'https://bekto.github.io/kiln',
     description: 'A demo site built with Kiln — posts, tags, feeds, search, and everything Wave 3 ships.',
   },
   features: {
