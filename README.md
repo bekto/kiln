@@ -1,24 +1,121 @@
 # Kiln
 
-A static site generator that bakes Markdown into fast websites.
-
 ![CI](https://github.com/<owner>/<repo>/actions/workflows/ci.yml/badge.svg) ![npm](https://img.shields.io/npm/v/kiln.svg)
 
-## Quickstart
+A static site generator that bakes Markdown into fast websites.
 
-From a fresh clone — install dependencies, build the bundled demo site, and
-browse it:
+Kiln takes Markdown content + Nunjucks templates and emits plain,
+dependency-free HTML — with a dev server, live reload, and content-hash
+incremental builds while you write. No framework runtime, no hosted vendor:
+the whole pipeline is strict TypeScript you can read, test, and extend by
+dropping in a single feature file.
 
 ```console
-$ npm install
-$ cd site && node ../src/cli.ts build   # → site/dist/
-$ cd site && node ../src/cli.ts serve   # browse the demo
+$ kiln build          # content/ + templates/ + public/  →  dist/
+$ kiln serve          # build, serve, live-reload on save
+$ kiln new "My post"  # scaffold a post with valid frontmatter
 ```
 
-Every other example in these docs writes the command as `kiln <command>`;
-inside this repository run it as `node src/cli.ts <command>` from the
-project root (or install the package — `package.json` exposes a `kiln`
-binary).
+## Setup
+
+**Requirements:** Node.js **≥ 24** (Kiln runs TypeScript natively — there is
+no build step) and npm.
+
+```console
+$ git clone <repo> && cd <repo>
+$ npm install                                  # toolchain + runtime deps
+$ cd site && node ../src/cli.ts build          # → site/dist/ (18 demo pages)
+$ node ../src/cli.ts serve                     # http://localhost:4173 + live reload
+```
+
+Inside this repository the CLI is always `node src/cli.ts <command>` (the
+`kiln <command>` spelling in the docs is the same program). In this
+repository every example in these docs writes the command as
+`kiln <command>`.
+
+**Start your own site:** copy `site/` as a working starting point, or build
+an empty one: a `kiln.config.ts` that default-exports a plain object (or no
+file at all — pure defaults), a `content/` directory of `.md` files, the
+three layouts from `templates/`, and an optional `public/` for static files.
+Full guides: [docs/content.md](docs/content.md),
+[docs/templates.md](docs/templates.md),
+[configuration reference](#configuration-reference).
+
+## Uninstall
+
+Kiln is fully self-contained — nothing global, no dotfiles, no system
+packages, no background services.
+
+```console
+$ rm -rf <repo>                  # that's the project gone
+$ npm cache clean --force        # optional: npm's shared download cache
+$ rm -f kiln-*.tgz               # only if you ran `npm pack`
+```
+
+Two notes:
+
+- There is no global bin to remove: `npm install -g kiln` does **not** work
+  on Node 24 (Node refuses to type-strip `.ts` files inside `node_modules`,
+  [nodejs/node#57215](https://github.com/nodejs/node/issues/57215)) — Kiln
+  runs from source today.
+- Your generated site is just static files: `kiln clean` deletes the output
+  (`dist/`), and whatever host you put it on keeps working until you remove
+  the files there.
+
+## Hosting (easy mode)
+
+The output of `kiln build` is plain files in `dist/` — no server, no
+runtime, no database. Any static host works.
+
+1. **Set `site.url`** in `kiln.config.ts` to your production URL first —
+   the feed and sitemap resolve every link against it.
+2. **Easiest (drag-and-drop):** build locally
+   (`cd site && node ../src/cli.ts build`), then drop the `site/dist`
+   folder onto a host's upload page (e.g. Netlify Drop, Cloudflare Pages
+   dashboard).
+3. **Git-connected:** point Netlify / Vercel / Cloudflare Pages at your
+   repo with build command
+   `npm install && cd site && node ../src/cli.ts build` and publish
+   directory `site/dist`.
+4. **GitHub Pages:** [`.github/workflows/ci.yml`](.github/workflows/ci.yml)
+   already runs the full test suite, builds the example site, and uploads
+   `site/dist` as a workflow artifact — add a Pages deploy step
+   (`upload-pages-artifact` + `deploy-pages`) when you're ready.
+5. **Your own server:** copy `dist/` to any web root
+   (`root /var/www/site;` in nginx, an S3 bucket, shared hosting).
+
+`kiln serve` is a **dev** server (live reload, no hardening) — never expose
+it publicly; host the built files instead.
+
+## What's good
+
+| Strength | What it means in practice |
+| --- | --- |
+| **Zero-JS pages** | Output is HTML + CSS. The only client script is optional search (and the dev-only reload injector). Pages work with JS off and load instantly — good for SEO and readers on bad networks. |
+| **Batteries included** | Feed, sitemap, tag/category archives, pagination, TOC + anchors, syntax highlighting, excerpts, reading time, related posts, client-side search, link checker, minifier, drafts/scheduling — all on by default (or one config key away). Most SSGs make you assemble this from plugins. |
+| **One-file extensions** | A feature is `src/features/x.ts` exporting up to four hooks, auto-discovered — no plugin registry, no config wiring. `features` config and frontmatter `data` are open maps, so your feature never collides with core or another feature's schema. |
+| **Fast dev loop** | ~250 ms cold build, **0 ms warm** (18/18 pages served from the content-hash cache), 100 ms debounce, SSE live reload. Edits feel instant. |
+| **Engineered, not hacked** | 396 tests including byte-level golden snapshots of a full site, strict `tsc` with erasable-syntax enforcement, CI, and aggregated `file:line` build errors that don't stop at the first failure. |
+| **You own it** | Content lives in git as markdown; the generator is a dependency you can read in an afternoon. No vendor, no fees, no lock-in, no API deprecations. |
+
+What it isn't: not a component framework (no React/Vue islands), not tuned
+for 10k-page publications, not a hosted service with a GUI editor. If you
+need those, use them.
+
+## How it compares
+
+| vs | Where they win | Where Kiln wins |
+| --- | --- | --- |
+| **[Hugo](https://gohugo.io)** | Raw build speed at huge scale, maturity, theme ecosystem | Hackable for TypeScript devs; typed config and typed feature hooks (Go templates are untyped) |
+| **[Eleventy](https://11ty.dev)** | Maturity, 10+ template languages, plugin breadth | Batteries-included vs plugin assembly; one unified hook contract instead of per-integration wiring |
+| **[Astro](https://astro.build)** / Next.js | Real interactivity — component islands, hydration | Strict zero-framework output; nothing to hydrate, nothing to break |
+| **[Jekyll](https://jekyllrb.com)** | GitHub Pages native support, Ruby ecosystem | No Ruby toolchain; runs anywhere Node ≥ 24 exists |
+| **Medium / Wix / Squarespace** | GUI editor, hosting, zero setup | Content-in-git, versionable, free to host — but *you* write the markdown |
+
+**Bottom line:** Kiln is a batteries-inclusive, zero-JS, source-first SSG —
+defensible when you want content in git and a codebase you can actually
+read and extend. It is not a Hugo killer; if you need massive-scale builds
+or a component ecosystem, pick those instead.
 
 ## Configuration reference
 
