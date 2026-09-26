@@ -1,18 +1,29 @@
-# CI — typecheck, test, and example-site build on every push and PR.
+# CI — typecheck, test, example-site build, and GitHub Pages deploy on
+# every push (PRs build but never publish).
 #
 # Action allowlist: only GitHub-maintained `actions/*` are permitted in this
 # repository. The complete set used here is `actions/checkout@v4`,
-# `actions/setup-node@v4`, and `actions/upload-artifact@v4` (the latter is
-# required by this ticket's artifact deliverable). No marketplace or
-# third-party actions (no coverage, lint, caching, or deployment actions),
+# `actions/setup-node@v4`, `actions/upload-artifact@v4` (the example-site
+# artifact), and the three official Pages actions `actions/configure-pages@v5`,
+# `actions/upload-pages-artifact@v3`, `actions/deploy-pages@v4`. No
+# marketplace or third-party actions (no coverage, lint, or caching actions),
 # no `services:`, no external containers.
 #
 # No dependency caching (`actions/cache` / setup-node's `cache:` input) —
-# `npm install` is the cache. No `permissions:` customization — the
-# workflow needs nothing beyond the defaults (read contents, write artifacts).
+# `npm install` is the cache. `pages: write` + `id-token: write` exist solely
+# so the deploy job can mint the OIDC token Pages verifies; every other job
+# runs with `contents: read`.
 name: CI
 
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
 
 jobs:
   test:
@@ -40,9 +51,31 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+      - uses: actions/configure-pages@v5
       - run: npm install
       - run: cd site && node ../src/cli.ts build
       - uses: actions/upload-artifact@v4
         with:
           name: example-site
           path: site/dist
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site/dist
+
+  deploy:
+    # Only a push to main publishes; PR runs stop after build-site.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build-site
+    runs-on: ubuntu-latest
+    # Serialize deploys: a newer push waits for the in-flight one instead of
+    # racing it (cancel-in-progress false — last completed run wins, but no
+    # half-finished overwrite).
+    concurrency:
+      group: github-pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
