@@ -45,7 +45,7 @@ main,
 .site-nav a { color: var(--accent); text-decoration: none; }
 .site-nav a:hover { text-decoration: underline; }
 
-.kiln-search { margin-left: auto; }
+.kiln-search { margin-left: auto; position: relative; }
 .kiln-search-input {
   width: 12rem;
   padding: 0.3rem 0.5rem;
@@ -53,14 +53,26 @@ main,
   border-radius: 6px;
   font: inherit;
 }
-.kiln-search-results {
-  list-style: none;
-  margin: 0.4rem 0 0;
-  padding: 0.4rem 0.6rem;
+/* Results overlay the page instead of pushing content down (T023). */
+.kiln-search-results,
+.kiln-search-empty {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin: 0.25rem 0 0;
+  min-width: 100%;
+  z-index: 10;
+  background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 6px;
-  background: var(--surface);
 }
+.kiln-search-results {
+  list-style: none;
+  padding: 0.4rem 0.6rem;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+.kiln-search-empty { margin: 0.25rem 0 0; padding: 0.3rem 0.6rem; font-size: 0.9rem; }
 .kiln-search-results li { margin: 0.3rem 0; }
 
 main { padding-top: 1.5rem; padding-bottom: 2rem; }
