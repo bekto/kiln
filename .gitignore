@@ -3,3 +3,4 @@ dist/
 *.tgz
 PLAN.md
 CHANGELOG.md
+tickets/
