@@ -16,5 +16,6 @@ export default {
     readingTime: { wordsPerMinute: 200 },  // T021
     related: { limit: 3 },                 // T022
     search: { indexPath: 'search-index.json' }, // T023
+    theme: { default: 'dark' },                // T036 — dark by default; the toggle persists
   },
 };

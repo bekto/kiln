@@ -73,8 +73,8 @@ Three layouts ship with the package (copy them into your project's
 - **`index.html`** — an `<h1>` and a list of every page in `site.pages`.
 
 Bundled partials: `toc.html`, `pagination.html`, `taxonomy-list.html`,
-`publish-meta.html`, `search.html`, `live-reload.html` (dev server), and
-`feed.xml` (rendered by the feed feature).
+`publish-meta.html`, `search.html`, `theme.html`, `live-reload.html`
+(dev server), and `feed.xml` (rendered by the feed feature).
 
 ## Opt-in search partial
 
@@ -90,3 +90,19 @@ results list, and the deferred `/assets/search.js` script. The input's
 search feature; default `/search-index.json`), so a build without the
 feature still renders a usable partial pointing at the default path.
 Details: [client-side search](features.md#client-side-search).
+
+## Opt-in theme partial
+
+The theme switcher renders nothing until you include it — place
+
+```nunjucks
+{% include "theme.html" %}
+```
+
+anywhere (a layout, a header partial) and the page gets a toggle button
+and the deferred `/assets/theme.js` script. The button's
+`data-default-theme` attribute carries `site.themeDefault` (published by
+the theme feature; default `dark`), so a build without the feature still
+renders a usable partial pointing at the default. Palettes are your
+stylesheet's job — see [theme switcher](features.md#theme-switcher) for
+the `data-theme` / `.kiln-theme-toggle` CSS contract.

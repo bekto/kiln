@@ -1,11 +1,24 @@
 /* Kiln example site — a small stylesheet, no framework. */
 
+/* Dark by default (T036): the theme script toggles data-theme on <html>,
+   and the visitor's stored choice wins over this default. */
 :root {
+  color-scheme: dark;
+  --text: #e6edf3;
+  --muted: #9198a1;
+  --line: #3d444d;
+  --accent: #58a6ff;
+  --surface: #161b22;
+  --bg: #0d1117;
+}
+:root[data-theme="light"] {
+  color-scheme: light;
   --text: #1f2328;
   --muted: #59636e;
   --line: #d1d9e0;
   --accent: #0969da;
   --surface: #f6f8fa;
+  --bg: #ffffff;
 }
 
 * { box-sizing: border-box; }
@@ -13,6 +26,7 @@
 body {
   margin: 0;
   color: var(--text);
+  background: var(--bg);
   font: 16px/1.65 system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
@@ -74,6 +88,16 @@ main,
 }
 .kiln-search-empty { margin: 0.25rem 0 0; padding: 0.3rem 0.6rem; font-size: 0.9rem; }
 .kiln-search-results li { margin: 0.3rem 0; }
+
+.kiln-theme-toggle {
+  padding: 0.3rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
 
 main { padding-top: 1.5rem; padding-bottom: 2rem; }
 

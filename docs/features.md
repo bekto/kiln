@@ -144,6 +144,26 @@ documented in [templates](templates.md#opt-in-search-partial) and the
 page gets an input, results list, and the script. Everything runs in the
 browser: no server, no network beyond fetching your own index file.
 
+## Theme switcher
+
+`features.theme.default` — string, `"dark"` or `"light"`, default `"dark"`
+(any other value fails the build naming the key).
+
+On every build the feature publishes the configured default as
+`site.themeDefault` and copies its no-dependency toggler to
+`dist/assets/theme.js`. The UI is opt-in: include the partial as documented
+in [templates](templates.md#opt-in-theme-partial) and the page gets a
+toggle button plus the script. The script drives the `data-theme`
+attribute on the document root — palettes are your stylesheet's job: put
+the dark-by-default values in `:root`, the light palette under
+`:root[data-theme="light"]` (the reverse when the default is "light"), and
+style `.kiln-theme-toggle`. A visitor's toggled choice is stored in
+localStorage under `kiln-theme` and wins over the configured default on
+every later page load; blocked or unavailable storage (private-mode
+browsers) degrades to a per-page choice, never an error. No server, no
+network, no flash for visitors who never toggled — with JS off the page
+stays on the default palette.
+
 ## Syntax highlighting
 
 `features.highlight.theme` — string, default `github-dark`.

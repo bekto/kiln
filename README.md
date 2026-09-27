@@ -92,11 +92,11 @@ it publicly; host the built files instead.
 
 | Strength | What it means in practice |
 | --- | --- |
-| **Zero-JS pages** | Output is HTML + CSS. The only client script is optional search (and the dev-only reload injector). Pages work with JS off and load instantly — good for SEO and readers on bad networks. |
-| **Batteries included** | Feed, sitemap, tag/category archives, pagination, TOC + anchors, syntax highlighting, excerpts, reading time, related posts, client-side search, link checker, minifier, drafts/scheduling — all on by default (or one config key away). Most SSGs make you assemble this from plugins. |
+| **Zero-JS pages** | Output is HTML + CSS. The only client scripts are the optional search and theme toggle (and the dev-only reload injector). Pages work with JS off and load instantly — good for SEO and readers on bad networks. |
+| **Batteries included** | Feed, sitemap, tag/category archives, pagination, TOC + anchors, syntax highlighting, excerpts, reading time, related posts, client-side search, theme switcher, link checker, minifier, drafts/scheduling — all on by default (or one config key away). Most SSGs make you assemble this from plugins. |
 | **One-file extensions** | A feature is `src/features/x.ts` exporting up to four hooks, auto-discovered — no plugin registry, no config wiring. `features` config and frontmatter `data` are open maps, so your feature never collides with core or another feature's schema. |
 | **Fast dev loop** | ~250 ms cold build, **0 ms warm** (18/18 pages served from the content-hash cache), 100 ms debounce, SSE live reload. Edits feel instant. |
-| **Engineered, not hacked** | 396 tests including byte-level golden snapshots of a full site, strict `tsc` with erasable-syntax enforcement, CI, and aggregated `file:line` build errors that don't stop at the first failure. |
+| **Engineered, not hacked** | 415 tests including byte-level golden snapshots of a full site, strict `tsc` with erasable-syntax enforcement, CI, and aggregated `file:line` build errors that don't stop at the first failure. |
 | **You own it** | Content lives in git as markdown; the generator is a dependency you can read in an afternoon. No vendor, no fees, no lock-in, no API deprecations. |
 
 What it isn't: not a component framework (no React/Vue islands), not tuned
@@ -158,6 +158,7 @@ the build with an error naming the full key path.
 | `features.readingTime.wordsPerMinute` | number | `200` | Reading-speed divisor for the `readingTime` estimate. |
 | `features.related.limit` | number | `5` | Number of related posts attached to each post. |
 | `features.search.indexPath` | string | `search-index.json` | Search-index file, relative to `dist/` (never absolute, never `..`). |
+| `features.theme.default` | string | `dark` | Default palette for the theme switcher; valid values are `dark` and `light` (the visitor's toggled choice persists in localStorage and wins). |
 | `features.minify` | object | *(disabled)* | Enabling key: setting it to an object turns HTML minification on for the whole build. |
 | `features.minify.collapseWhitespace` | boolean | `true` | Collapse inter-tag whitespace (applies once `features.minify` is enabled). |
 | `features.minify.removeComments` | boolean | `true` | Strip HTML comments (applies once `features.minify` is enabled). |
@@ -287,6 +288,8 @@ Each feature has a prose guide with its config key and default in
   [docs/features.md#related-posts](docs/features.md#related-posts)
 - **Client-side search** — build-time index plus no-dependency browser
   matcher: [docs/features.md#client-side-search](docs/features.md#client-side-search)
+- **Theme switcher** — `data-theme` toggle with persisted visitor choice:
+  [docs/features.md#theme-switcher](docs/features.md#theme-switcher)
 - **Syntax highlighting** — highlight.js styles and language labels:
   [docs/features.md#syntax-highlighting](docs/features.md#syntax-highlighting)
 - **HTML minification** — opt-in, `<pre>`/`<code>` byte-preserving:

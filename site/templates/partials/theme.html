@@ -1,0 +1,11 @@
+{#- T036 — opt-in theme switcher: site authors place
+    {% include "theme.html" %} anywhere the toggle should appear. The
+    button's data-default-theme carries site.themeDefault (published by
+    src/features/theme.ts) through T012's siteContext; the default keeps
+    a partial usable in builds without the feature. The script (copied to
+    dist/assets/theme.js) drives data-theme on the document root —
+    palettes are the site stylesheet's job. -#}
+<div class="kiln-theme">
+  <button class="kiln-theme-toggle" type="button" aria-pressed="true" data-default-theme="{{ site.themeDefault | default('dark') }}">Theme</button>
+</div>
+<script src="{{ site.basePath }}/assets/theme.js" defer></script>
